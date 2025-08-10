@@ -22,6 +22,7 @@ function quitarTildes(str) {
     nombre = quitarTildes(nombre).toUpperCase();
     formContainer.style.display = 'none';
     canvas.style.display = 'block';
+    document.getElementById('credits').style.display = 'block'; // Mostrar créditos de animación
     resizeCanvas();
     iniciarAnimacionBlockMensaje(nombre);
   });
@@ -413,13 +414,26 @@ function quitarTildes(str) {
       corazonScale = 1.1;
     }
     
-    // Construir mensaje
-    const mensaje = ('HBD ' + nombre).toUpperCase();
+    // Construir mensaje según el dispositivo
+    let mensaje, segundaLinea;
+    if (isMobile) {
+      // En móviles: "HBD" en primera línea, nombre en segunda línea
+      mensaje = 'HBD';
+      segundaLinea = nombre;
+    } else {
+      // En desktop: todo en una línea
+      mensaje = ('HBD ' + nombre).toUpperCase();
+      segundaLinea = null;
+    }
+    
     // Construir paths para el mensaje y asociar cada segmento a su letra
     let paths = [];
     let letraIndices = [];
     let x = 0;
+    let y = 0; // Para manejar múltiples líneas
     let maxY = 0, minY = Infinity;
+    
+    // Primera línea (HBD)
     for (let i = 0; i < mensaje.length; i++) {
       const ch = mensaje[i];
       if (ch === ' ') {
@@ -428,10 +442,9 @@ function quitarTildes(str) {
       }
       const letter = blockLetters[ch] || blockLetters[' '];
       for (const seg of letter) {
-        const segAbs = seg.map(([px, py]) => [x + px*0.8, py*0.8]);
+        const segAbs = seg.map(([px, py]) => [x + px*0.8, y + py*0.8]);
         paths.push(segAbs);
-        letraIndices.push(i); // Guardar el índice de la letra para cada segmento
-        // Para centrado vertical del corazón
+        letraIndices.push(i);
         for (const [_, py] of seg) {
           if (py > maxY) maxY = py;
           if (py < minY) minY = py;
@@ -439,24 +452,48 @@ function quitarTildes(str) {
       }
       x += letraW + esp;
     }
-    // Añadir corazón al final (más grande y centrado verticalmente)
-    const corazonYOffset = (letraH - 80*corazonScale) / 2; // Centrado vertical
-    const corazonXOffset = x + 10; // Más a la derecha
-    const corazon = blockLetters['♥'][0].map(([px, py]) => [corazonXOffset + px*corazonScale, py*corazonScale + corazonYOffset]);
+    
+    // Segunda línea (nombre) - solo en móviles
+    if (segundaLinea) {
+      x = 0; // Resetear x para la segunda línea
+      y = letraH + 20; // Espacio entre líneas
+      
+      for (let i = 0; i < segundaLinea.length; i++) {
+        const ch = segundaLinea[i];
+        const letter = blockLetters[ch] || blockLetters[' '];
+        for (const seg of letter) {
+          const segAbs = seg.map(([px, py]) => [x + px*0.8, y + py*0.8]);
+          paths.push(segAbs);
+          letraIndices.push(mensaje.length + i); // Índice continuo
+          for (const [_, py] of seg) {
+            if (y + py > maxY) maxY = y + py;
+            if (y + py < minY) minY = y + py;
+          }
+        }
+        x += letraW + esp;
+      }
+    }
+    
+    // Añadir corazón al final
+    const corazonYOffset = (letraH - 80*corazonScale) / 2;
+    const corazonXOffset = x + 10;
+    const corazonY = segundaLinea ? y + 20 : 0; // Posición Y del corazón
+    const corazon = blockLetters['♥'][0].map(([px, py]) => [corazonXOffset + px*corazonScale, corazonY + py*corazonScale + corazonYOffset]);
     paths.push(corazon);
-    letraIndices.push(mensaje.length); // El corazón es la última "letra"
+    letraIndices.push(mensaje.length + (segundaLinea ? segundaLinea.length : 0));
 
-    // Centrado horizontal de todo el mensaje (incluyendo el corazón)
-    const totalW = corazonXOffset + 60*corazonScale; // ancho total estimado (corazón más ancho)
+    // Centrado horizontal y vertical
+    const totalW = corazonXOffset + 60*corazonScale;
+    const totalH = segundaLinea ? y + letraH + 40 : letraH; // Altura total incluyendo segunda línea
     const offsetX = canvas.width/2 - totalW/2;
-    const offsetY = canvas.height/2 - letraH/2;
+    const offsetY = canvas.height/2 - totalH/2;
 
     // Animación
     let pathIdx = 0, puntoIdx = 0, t = 0;
-    let estado = 'dibuja'; // 'dibuja', 'pausa', 'mueve'
+    let estado = 'dibuja';
     let lastPoint = null, moveFrom = null, moveTo = null;
     let drawnSmoke = [];
-    let pausaFrames = isMobile ? 15 : 20; // Pausa más corta en móviles
+    let pausaFrames = isMobile ? 15 : 20;
     let showFireworks = false;
     let fireworkTimer = 0;
 
@@ -490,7 +527,7 @@ function quitarTildes(str) {
         // Velocidad uniforme: avanzar por distancia, no por t fijo
         const dx = end[0]-start[0], dy = end[1]-start[1];
         const dist = Math.sqrt(dx*dx+dy*dy);
-        const speed = isMobile ? 5.5 : 4.5; // Más rápido en móviles
+        const speed = isMobile ? 5.5 : 4.5;
         t += speed/dist;
         px = offsetX + start[0] + (end[0]-start[0])*t;
         py = offsetY + start[1] + (end[1]-start[1])*t;
@@ -543,7 +580,7 @@ function quitarTildes(str) {
         const to = moveTo;
         const dx = to[0]-from[0], dy = to[1]-from[1];
         const dist = Math.sqrt(dx*dx+dy*dy);
-        const speed = isMobile ? 7.0 : 6.0; // Más rápido en móviles
+        const speed = isMobile ? 7.0 : 6.0;
         t += speed/dist;
         px = from[0] + (to[0]-from[0])*t;
         py = from[1] + (to[1]-from[1])*t;
