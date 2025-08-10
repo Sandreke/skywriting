@@ -325,9 +325,9 @@ function quitarTildes(str) {
 
   function drawBackground() {
     if (bgLoaded) {
-      // Cubrir todo el canvas, manteniendo proporción
+      // Mostrar toda la imagen sin recortar (contain en lugar de cover)
       let iw = bgImg.width, ih = bgImg.height, cw = canvas.width, ch = canvas.height;
-      let scale = Math.max(cw/iw, ch/ih);
+      let scale = Math.min(cw/iw, ch/ih); // Cambiar de max a min para contain
       let nw = iw*scale, nh = ih*scale;
       let nx = (cw-nw)/2, ny = (ch-nh)/2;
       ctx.drawImage(bgImg, nx, ny, nw, nh);
@@ -392,19 +392,19 @@ function quitarTildes(str) {
     let letraW, letraH, esp, espPalabra, corazonScale;
     
     if (isSmallMobile) {
-      // Móvil pequeño
-      letraW = 30*0.8;
-      letraH = 60*0.8;
+      // Móvil pequeño - letras más pequeñas
+      letraW = 24*0.8;
+      letraH = 48*0.8;
+      esp = 20*0.8;
+      espPalabra = 30*0.8;
+      corazonScale = 0.8;
+    } else if (isMobile) {
+      // Móvil - letras más pequeñas
+      letraW = 28*0.8;
+      letraH = 56*0.8;
       esp = 25*0.8;
       espPalabra = 35*0.8;
       corazonScale = 0.9;
-    } else if (isMobile) {
-      // Móvil
-      letraW = 34*0.8;
-      letraH = 70*0.8;
-      esp = 30*0.8;
-      espPalabra = 40*0.8;
-      corazonScale = 1.0;
     } else {
       // Desktop
       letraW = 38*0.8;
@@ -417,7 +417,7 @@ function quitarTildes(str) {
     // Construir mensaje según el dispositivo
     let mensaje, segundaLinea;
     if (isMobile) {
-      // En móviles: "HBD" en primera línea, nombre en segunda línea
+      // En móviles: "HBD" centrado en primera línea, nombre en segunda línea
       mensaje = 'HBD';
       segundaLinea = nombre;
     } else {
@@ -433,7 +433,22 @@ function quitarTildes(str) {
     let y = 0; // Para manejar múltiples líneas
     let maxY = 0, minY = Infinity;
     
-    // Primera línea (HBD)
+    // Primera línea (HBD) - centrada
+    if (isMobile) {
+      // Calcular el ancho total de "HBD" para centrarlo
+      let hbdWidth = 0;
+      for (let i = 0; i < mensaje.length; i++) {
+        const ch = mensaje[i];
+        const letter = blockLetters[ch] || blockLetters[' '];
+        for (const seg of letter) {
+          const maxX = Math.max(...seg.map(([px, _]) => px));
+          if (maxX > hbdWidth) hbdWidth = maxX;
+        }
+      }
+      hbdWidth = hbdWidth * 0.8 + (mensaje.length - 1) * esp;
+      x = (canvas.width - hbdWidth) / 2; // Centrar HBD
+    }
+    
     for (let i = 0; i < mensaje.length; i++) {
       const ch = mensaje[i];
       if (ch === ' ') {
@@ -453,10 +468,21 @@ function quitarTildes(str) {
       x += letraW + esp;
     }
     
-    // Segunda línea (nombre) - solo en móviles
+    // Segunda línea (nombre) - solo en móviles, centrada
     if (segundaLinea) {
-      x = 0; // Resetear x para la segunda línea
-      y = letraH + 20; // Espacio entre líneas
+      // Calcular el ancho total del nombre para centrarlo
+      let nombreWidth = 0;
+      for (let i = 0; i < segundaLinea.length; i++) {
+        const ch = segundaLinea[i];
+        const letter = blockLetters[ch] || blockLetters[' '];
+        for (const seg of letter) {
+          const maxX = Math.max(...seg.map(([px, _]) => px));
+          if (maxX > nombreWidth) nombreWidth = maxX;
+        }
+      }
+      nombreWidth = nombreWidth * 0.8 + (segundaLinea.length - 1) * esp;
+      x = (canvas.width - nombreWidth) / 2; // Centrar el nombre
+      y = letraH + 30; // Más espacio entre líneas
       
       for (let i = 0; i < segundaLinea.length; i++) {
         const ch = segundaLinea[i];
@@ -464,7 +490,7 @@ function quitarTildes(str) {
         for (const seg of letter) {
           const segAbs = seg.map(([px, py]) => [x + px*0.8, y + py*0.8]);
           paths.push(segAbs);
-          letraIndices.push(mensaje.length + i); // Índice continuo
+          letraIndices.push(mensaje.length + i);
           for (const [_, py] of seg) {
             if (y + py > maxY) maxY = y + py;
             if (y + py < minY) minY = y + py;
@@ -476,16 +502,14 @@ function quitarTildes(str) {
     
     // Añadir corazón al final
     const corazonYOffset = (letraH - 80*corazonScale) / 2;
-    const corazonXOffset = x + 10;
-    const corazonY = segundaLinea ? y + 20 : 0; // Posición Y del corazón
+    const corazonXOffset = x + 15;
+    const corazonY = segundaLinea ? y + 25 : 0;
     const corazon = blockLetters['♥'][0].map(([px, py]) => [corazonXOffset + px*corazonScale, corazonY + py*corazonScale + corazonYOffset]);
     paths.push(corazon);
     letraIndices.push(mensaje.length + (segundaLinea ? segundaLinea.length : 0));
 
-    // Centrado horizontal y vertical
-    const totalW = corazonXOffset + 60*corazonScale;
-    const totalH = segundaLinea ? y + letraH + 40 : letraH; // Altura total incluyendo segunda línea
-    const offsetX = canvas.width/2 - totalW/2;
+    // Centrado vertical
+    const totalH = segundaLinea ? y + letraH + 50 : letraH;
     const offsetY = canvas.height/2 - totalH/2;
 
     // Animación
@@ -529,12 +553,12 @@ function quitarTildes(str) {
         const dist = Math.sqrt(dx*dx+dy*dy);
         const speed = isMobile ? 5.5 : 4.5;
         t += speed/dist;
-        px = offsetX + start[0] + (end[0]-start[0])*t;
+        px = start[0] + (end[0]-start[0])*t;
         py = offsetY + start[1] + (end[1]-start[1])*t;
         angle = getAngle(
-          offsetX + start[0],
+          start[0],
           offsetY + start[1],
-          offsetX + end[0],
+          end[0],
           offsetY + end[1]
         );
         drawPlane(px, py, angle);
@@ -554,14 +578,14 @@ function quitarTildes(str) {
             } else {
               // Movimiento directo al siguiente segmento de la misma letra
               estado='mueve';
-              moveFrom = [offsetX + lastPoint[0], offsetY + lastPoint[1]];
-              moveTo = [offsetX + paths[pathIdx][0][0], offsetY + paths[pathIdx][0][1]];
+              moveFrom = [lastPoint[0], offsetY + lastPoint[1]];
+              moveTo = [paths[pathIdx][0][0], offsetY + paths[pathIdx][0][1]];
               t = 0;
             }
           }
         }
       } else if(estado==='pausa') {
-        px = offsetX + lastPoint[0];
+        px = lastPoint[0];
         py = offsetY + lastPoint[1];
         angle = 0;
         drawPlane(px, py, angle);
@@ -570,8 +594,8 @@ function quitarTildes(str) {
           pausaFrames = isMobile ? 15 : 20;
           estado='mueve';
           if(pathIdx<paths.length) {
-            moveFrom = [offsetX + lastPoint[0], offsetY + lastPoint[1]];
-            moveTo = [offsetX + paths[pathIdx][0][0], offsetY + paths[pathIdx][0][1]];
+            moveFrom = [lastPoint[0], offsetY + lastPoint[1]];
+            moveTo = [paths[pathIdx][0][0], offsetY + paths[pathIdx][0][1]];
           }
           t = 0;
         }
