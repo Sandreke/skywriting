@@ -319,15 +319,15 @@ function quitarTildes(str) {
   }
   
   let bgImg = new window.Image();
-  bgImg.src = 'assets/fondo2.jpeg';
+  bgImg.src = 'assets/fondo1.jpg';
   let bgLoaded = false;
   bgImg.onload = () => { bgLoaded = true; };
 
   function drawBackground() {
     if (bgLoaded) {
-      // Mostrar toda la imagen sin recortar (contain en lugar de cover)
+      // Cubrir toda la pantalla manteniendo proporción (cover en lugar de contain)
       let iw = bgImg.width, ih = bgImg.height, cw = canvas.width, ch = canvas.height;
-      let scale = Math.min(cw/iw, ch/ih); // Cambiar de max a min para contain
+      let scale = Math.max(cw/iw, ch/ih); // Volver a max para cover
       let nw = iw*scale, nh = ih*scale;
       let nx = (cw-nw)/2, ny = (ch-nh)/2;
       ctx.drawImage(bgImg, nx, ny, nw, nh);
@@ -392,19 +392,19 @@ function quitarTildes(str) {
     let letraW, letraH, esp, espPalabra, corazonScale;
     
     if (isSmallMobile) {
-      // Móvil pequeño - letras más pequeñas
-      letraW = 24*0.8;
-      letraH = 48*0.8;
-      esp = 20*0.8;
-      espPalabra = 30*0.8;
-      corazonScale = 0.8;
-    } else if (isMobile) {
-      // Móvil - letras más pequeñas
-      letraW = 28*0.8;
-      letraH = 56*0.8;
-      esp = 25*0.8;
+      // Móvil pequeño - letras mucho más pequeñas y separadas
+      letraW = 18*0.8;
+      letraH = 36*0.8;
+      esp = 25*0.8; // Más espacio entre letras
       espPalabra = 35*0.8;
-      corazonScale = 0.9;
+      corazonScale = 0.6;
+    } else if (isMobile) {
+      // Móvil - letras más pequeñas y separadas
+      letraW = 22*0.8;
+      letraH = 44*0.8;
+      esp = 30*0.8; // Más espacio entre letras
+      espPalabra = 40*0.8;
+      corazonScale = 0.7;
     } else {
       // Desktop
       letraW = 38*0.8;
@@ -433,19 +433,71 @@ function quitarTildes(str) {
     let y = 0; // Para manejar múltiples líneas
     let maxY = 0, minY = Infinity;
     
+    // Función para calcular el ancho real de una letra
+    function getLetterWidth(ch) {
+      if (ch === ' ') return espPalabra;
+      const letter = blockLetters[ch] || blockLetters[' '];
+      let maxX = 0;
+      for (const seg of letter) {
+        const segMaxX = Math.max(...seg.map(([px, _]) => px));
+        if (segMaxX > maxX) maxX = segMaxX;
+      }
+      return maxX * 0.8;
+    }
+    
+    // Calcular el ancho total del mensaje completo para centrarlo
+    let totalWidth = 0;
+    let letterCount = 0;
+    
+    // Calcular ancho de la primera línea (HBD + espacio + nombre)
+    for (let i = 0; i < mensaje.length; i++) {
+      const ch = mensaje[i];
+      if (ch === ' ') {
+        totalWidth += espPalabra;
+        continue;
+      }
+      totalWidth += getLetterWidth(ch);
+      letterCount++;
+    }
+    
+    // Añadir espaciado entre letras
+    totalWidth += (letterCount - 1) * esp;
+    
+    // Añadir espacio para el corazón al final
+    const corazonWidth = 60 * corazonScale; // Ancho aproximado del corazón
+    totalWidth += 15 + corazonWidth; // 15px de espacio + ancho del corazón
+    
+    // Calcular ancho de la segunda línea si existe (solo móvil)
+    if (segundaLinea) {
+      let segundaLineaWidth = 0;
+      let segundaLineaLetterCount = 0;
+      for (let i = 0; i < segundaLinea.length; i++) {
+        const ch = segundaLinea[i];
+        segundaLineaWidth += getLetterWidth(ch);
+        segundaLineaLetterCount++;
+      }
+      // Añadir espaciado entre letras
+      segundaLineaWidth += (segundaLineaLetterCount - 1) * esp;
+      // Añadir espacio para el corazón en la segunda línea también
+      segundaLineaWidth += 15 + corazonWidth;
+      // Usar el ancho más grande de las dos líneas
+      totalWidth = Math.max(totalWidth, segundaLineaWidth);
+    }
+    
+    // Centrar el mensaje completo
+    x = (canvas.width - totalWidth) / 2;
+    
     // Primera línea (HBD) - centrada
     if (isMobile) {
-      // Calcular el ancho total de "HBD" para centrarlo
+      // En móvil, centrar solo HBD
       let hbdWidth = 0;
+      let hbdLetterCount = 0;
       for (let i = 0; i < mensaje.length; i++) {
         const ch = mensaje[i];
-        const letter = blockLetters[ch] || blockLetters[' '];
-        for (const seg of letter) {
-          const maxX = Math.max(...seg.map(([px, _]) => px));
-          if (maxX > hbdWidth) hbdWidth = maxX;
-        }
+        hbdWidth += getLetterWidth(ch);
+        hbdLetterCount++;
       }
-      hbdWidth = hbdWidth * 0.8 + (mensaje.length - 1) * esp;
+      hbdWidth += (hbdLetterCount - 1) * esp;
       x = (canvas.width - hbdWidth) / 2; // Centrar HBD
     }
     
@@ -472,17 +524,18 @@ function quitarTildes(str) {
     if (segundaLinea) {
       // Calcular el ancho total del nombre para centrarlo
       let nombreWidth = 0;
+      let nombreLetterCount = 0;
       for (let i = 0; i < segundaLinea.length; i++) {
         const ch = segundaLinea[i];
-        const letter = blockLetters[ch] || blockLetters[' '];
-        for (const seg of letter) {
-          const maxX = Math.max(...seg.map(([px, _]) => px));
-          if (maxX > nombreWidth) nombreWidth = maxX;
-        }
+        nombreWidth += getLetterWidth(ch);
+        nombreLetterCount++;
       }
-      nombreWidth = nombreWidth * 0.8 + (segundaLinea.length - 1) * esp;
+      // Añadir espaciado entre letras
+      nombreWidth += (nombreLetterCount - 1) * esp;
+      // Añadir espacio para el corazón
+      nombreWidth += 15 + corazonWidth;
       x = (canvas.width - nombreWidth) / 2; // Centrar el nombre
-      y = letraH + 30; // Más espacio entre líneas
+      y = letraH + 60; // Mucho más espacio entre líneas (antes era 30)
       
       for (let i = 0; i < segundaLinea.length; i++) {
         const ch = segundaLinea[i];
@@ -509,7 +562,7 @@ function quitarTildes(str) {
     letraIndices.push(mensaje.length + (segundaLinea ? segundaLinea.length : 0));
 
     // Centrado vertical
-    const totalH = segundaLinea ? y + letraH + 50 : letraH;
+    const totalH = segundaLinea ? y + letraH + 80 : letraH; // Más espacio para el total
     const offsetY = canvas.height/2 - totalH/2;
 
     // Animación
