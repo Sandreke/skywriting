@@ -325,11 +325,23 @@ function quitarTildes(str) {
 
   function drawBackground() {
     if (bgLoaded) {
-      // Cubrir toda la pantalla manteniendo proporción (cover en lugar de contain)
+      // En móviles: usar contain para evitar zoom, en desktop: cover
+      const isMobile = window.innerWidth <= 768;
       let iw = bgImg.width, ih = bgImg.height, cw = canvas.width, ch = canvas.height;
-      let scale = Math.max(cw/iw, ch/ih); // Volver a max para cover
-      let nw = iw*scale, nh = ih*scale;
-      let nx = (cw-nw)/2, ny = (ch-nh)/2;
+      let scale, nw, nh, nx, ny;
+      
+      if (isMobile) {
+        // Contain: la imagen completa se ve sin zoom
+        scale = Math.min(cw/iw, ch/ih);
+        nw = iw*scale, nh = ih*scale;
+        nx = (cw-nw)/2, ny = (ch-nh)/2;
+      } else {
+        // Cover: cubrir toda la pantalla (desktop)
+        scale = Math.max(cw/iw, ch/ih);
+        nw = iw*scale, nh = ih*scale;
+        nx = (cw-nw)/2, ny = (ch-nh)/2;
+      }
+      
       ctx.drawImage(bgImg, nx, ny, nw, nh);
     } else {
       ctx.fillStyle = '#7ec0ee';
@@ -393,20 +405,20 @@ function quitarTildes(str) {
     
     if (isSmallMobile) {
       // Móvil pequeño - letras mucho más pequeñas y separadas
-      letraW = 18*0.8;
-      letraH = 36*0.8;
-      esp = 25*0.8; // Más espacio entre letras
-      espPalabra = 35*0.8;
-      corazonScale = 0.6;
+      letraW = 14*0.8; // Reducido de 18 a 14
+      letraH = 28*0.8; // Reducido de 36 a 28
+      esp = 35*0.8; // Más espacio entre letras (aumentado de 25 a 35)
+      espPalabra = 45*0.8; // Más espacio entre palabras
+      corazonScale = 0.5; // Corazón más pequeño
     } else if (isMobile) {
       // Móvil - letras más pequeñas y separadas
-      letraW = 22*0.8;
-      letraH = 44*0.8;
-      esp = 30*0.8; // Más espacio entre letras
-      espPalabra = 40*0.8;
-      corazonScale = 0.7;
+      letraW = 18*0.8; // Reducido de 22 a 18
+      letraH = 36*0.8; // Reducido de 44 a 36
+      esp = 40*0.8; // Más espacio entre letras (aumentado de 30 a 40)
+      espPalabra = 50*0.8; // Más espacio entre palabras
+      corazonScale = 0.6; // Corazón más pequeño
     } else {
-      // Desktop
+      // Desktop - NO TOCAR
       letraW = 38*0.8;
       letraH = 80*0.8;
       esp = 35*0.8;
@@ -535,7 +547,7 @@ function quitarTildes(str) {
       // Añadir espacio para el corazón
       nombreWidth += 15 + corazonWidth;
       x = (canvas.width - nombreWidth) / 2; // Centrar el nombre
-      y = letraH + 60; // Mucho más espacio entre líneas (antes era 30)
+      y = letraH + 80; // Más espacio entre líneas (aumentado de 60 a 80)
       
       for (let i = 0; i < segundaLinea.length; i++) {
         const ch = segundaLinea[i];
