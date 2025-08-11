@@ -33,6 +33,13 @@ function quitarTildes(str) {
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
+    
+    // Escalar el avioncito en móviles
+    const isMobile = window.innerWidth <= 768;
+    const planeScale = isMobile ? 0.6 : 1.0; // 60% del tamaño en móviles
+    
+    ctx.scale(planeScale, planeScale);
+    
     ctx.fillStyle = '#e0e0e0';
     ctx.fillRect(-19, -5, 38, 10); // cuerpo
     ctx.fillStyle = '#b22222';
@@ -325,28 +332,22 @@ function quitarTildes(str) {
 
   function drawBackground() {
     if (bgLoaded) {
-      // En móviles: cover pero ajustado para evitar zoom, en desktop: cover normal
+      // En móviles: contain ajustado para evitar zoom, en desktop: cover normal
       const isMobile = window.innerWidth <= 768;
       let iw = bgImg.width, ih = bgImg.height, cw = canvas.width, ch = canvas.height;
       let scale, nw, nh, nx, ny;
       
       if (isMobile) {
-        // Cover ajustado: cubrir toda la pantalla pero con escala que evite zoom
-        // Usar el ancho como referencia para evitar que se corte la imagen
-        scale = cw / iw;
+        // Contain ajustado: mostrar toda la imagen sin zoom pero maximizando el uso del espacio
+        // Usar el lado más pequeño como referencia para que quepa completamente
+        const scaleX = cw / iw;
+        const scaleY = ch / ih;
+        scale = Math.min(scaleX, scaleY) * 0.95; // 95% para un pequeño margen
+        
         nw = iw * scale;
         nh = ih * scale;
-        nx = 0;
+        nx = (cw - nw) / 2; // Centrar horizontalmente
         ny = (ch - nh) / 2; // Centrar verticalmente
-        
-        // Si la altura es menor que la pantalla, ajustar para cubrir completamente
-        if (nh < ch) {
-          scale = ch / ih;
-          nw = iw * scale;
-          nh = ih * scale;
-          nx = (cw - nw) / 2; // Centrar horizontalmente
-          ny = 0;
-        }
       } else {
         // Cover: cubrir toda la pantalla (desktop)
         scale = Math.max(cw/iw, ch/ih);
@@ -417,18 +418,18 @@ function quitarTildes(str) {
     
     if (isSmallMobile) {
       // Móvil pequeño - letras mucho más pequeñas y separadas
-      letraW = 12*0.8; // Reducido de 14 a 12
-      letraH = 24*0.8; // Reducido de 28 a 24
-      esp = 45*0.8; // Más espacio entre letras (aumentado de 35 a 45)
-      espPalabra = 55*0.8; // Más espacio entre palabras
-      corazonScale = 0.4; // Corazón más pequeño
+      letraW = 8*0.8; // Reducido de 10 a 8
+      letraH = 16*0.8; // Reducido de 20 a 16
+      esp = 55*0.8; // Más espacio entre letras (aumentado de 45 a 55)
+      espPalabra = 65*0.8; // Más espacio entre palabras
+      corazonScale = 0.6; // Corazón más grande (aumentado de 0.4 a 0.6)
     } else if (isMobile) {
       // Móvil - letras más pequeñas y separadas
-      letraW = 16*0.8; // Reducido de 18 a 16
-      letraH = 32*0.8; // Reducido de 36 a 32
-      esp = 50*0.8; // Más espacio entre letras (aumentado de 40 a 50)
-      espPalabra = 60*0.8; // Más espacio entre palabras
-      corazonScale = 0.5; // Corazón más pequeño
+      letraW = 12*0.8; // Reducido de 16 a 12
+      letraH = 24*0.8; // Reducido de 32 a 24
+      esp = 60*0.8; // Más espacio entre letras (aumentado de 50 a 60)
+      espPalabra = 70*0.8; // Más espacio entre palabras
+      corazonScale = 0.7; // Corazón más grande (aumentado de 0.5 a 0.7)
     } else {
       // Desktop - NO TOCAR
       letraW = 38*0.8;
@@ -546,7 +547,7 @@ function quitarTildes(str) {
     
     // Segunda línea (nombre) - solo en móviles, centrada
     if (segundaLinea) {
-      // Calcular el ancho total del nombre para centrarlo
+      // Calcular el ancho total del nombre + corazón para centrarlo
       let nombreWidth = 0;
       let nombreLetterCount = 0;
       for (let i = 0; i < segundaLinea.length; i++) {
@@ -558,8 +559,8 @@ function quitarTildes(str) {
       nombreWidth += (nombreLetterCount - 1) * esp;
       // Añadir espacio para el corazón
       nombreWidth += 15 + corazonWidth;
-      x = (canvas.width - nombreWidth) / 2; // Centrar el nombre
-      y = letraH + 80; // Más espacio entre líneas (aumentado de 60 a 80)
+      x = (canvas.width - nombreWidth) / 2; // Centrar el nombre + corazón
+      y = letraH + 100; // Más espacio entre líneas (aumentado de 80 a 100)
       
       for (let i = 0; i < segundaLinea.length; i++) {
         const ch = segundaLinea[i];
